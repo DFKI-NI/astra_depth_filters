@@ -6,6 +6,7 @@
 #include <cv_bridge/cv_bridge.h>
 #include <dynamic_reconfigure/server.h>
 #include <astra_depth_filters/DepthFilterConfig.h>
+#include <ctime>
 class DepthFilter
 {
   ros::NodeHandle n_;
@@ -19,7 +20,10 @@ class DepthFilter
   image_transport::Subscriber sub_;
 
   astra_depth_filters::DepthFilterConfig config_;
+
   dynamic_reconfigure::Server<astra_depth_filters::DepthFilterConfig> server_;
+
+  cv_bridge::CvImagePtr lastFrame_;
 
   void reconfigure(astra_depth_filters::DepthFilterConfig &dfconfig, uint32_t level);
 
