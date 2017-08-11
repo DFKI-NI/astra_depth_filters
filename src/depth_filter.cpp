@@ -57,7 +57,6 @@ void DepthFilter::processDepthImage(const sensor_msgs::ImageConstPtr& dimg)
     ROS_ERROR("CV Bridge Error: %s", e.what());
     return;
   }
-  //std::cout << laplaceKernelSize << " " << filterThreshold << " " << dilateStructSize <<std::endl;
 
   //find edges in the depth image
   cv::Mat edges;
@@ -69,45 +68,36 @@ void DepthFilter::processDepthImage(const sensor_msgs::ImageConstPtr& dimg)
   cv::Mat structElem = cv::getStructuringElement(config_.structShape, cv::Size(config_.dilateStructSize, config_.dilateStructSize));
   cv::dilate(edges, edges, structElem);
 
-  //remove the border
-  //cv::Rect border(cv::Point(0, 0), edges.size());
-  //cv::Scalar color(0, 0, 0);
-  //int thickness = 100;
-  //cv::rectangle(edges, border, color, thickness);
 
   //invert binary image
-
-
   edges = (edges - 1) * (-1);
 
-  //try something!
+  //call the similarFilter
 
   similarFilter(image_in->image, edges);
 
   //edges = (edges - 1) * (-1); shows noise instead of image
 
-  int invalidPixels = cv::countNonZero(edges);
-  ROS_INFO("Number of Pixels deleted: %i from %i", (edges.rows * edges.cols) - invalidPixels, edges.rows * edges.cols);
+  //int invalidPixels = cv::countNonZero(edges);
+  //ROS_INFO("Number of Pixels deleted: %i from %i", (edges.rows * edges.cols) - invalidPixels, edges.rows * edges.cols);
+  
   //use edges to mask out the garbagepixels
   cv::multiply(edges, image_in->image, image_in->image);
-
-
-
+  //image_raw needs to be 16UC1 format
   image_in->image.convertTo(image_out.image, CV_16UC1);
 
-  double min, max;
-  cv::minMaxLoc(image_out.image, &min, &max);
-  ROS_INFO("Min: %f ; Max: %f", min, max);
   //time for one frame
   clock_t end = clock();
-  double elapsed_secs = double(end - start) / CLOCKS_PER_SEC;
-  ROS_INFO("Time for frame: %f", elapsed_secs);
+
+  // double elapsed_secs = double(end - start) / CLOCKS_PER_SEC;
+  // time_running += elapsed_secs;
+  //ROS_INFO("Time for frame: %f", elapsed_secs);
 
 
   image_debug.image = edges;
   image_debug_pub_.publish(image_debug.toImageMsg());
   image_pub_.publish(image_out.toImageMsg());
-
+ // ROS_INFO("Time for frame: %f", time_running);
 }
 /*
 * Filters pixels on edges: if pixels are similar to the neighbours, they will be taken into the result
@@ -123,24 +113,24 @@ void DepthFilter::similarFilter(cv::Mat img, cv::Mat edges)
   {
     for (int j = 1 ; j < (img.cols) - 1 ; j++)
     {
-      if (edges.at<float>(i, j) == 0)
+      if (edges.at<float>(i, j) == 0) //for all edge points we detected: should we use them or throw them away..?
       {
         int similarPixels = 0;
+        //get a submatrix around middle pixel -> neighbourhood
         cv::Mat submat(img, cv::Rect(j - 1, i - 1, 3, 3));
-        submat = submat.clone(); //for continuosity (isContinuous)
-        submat.reshape(0, 1); //so we get a vector to iterate on
-        for (int neighbour = 0 ; neighbour < 9 ; neighbour++)
-        {
 
-          if (neighbour != 4) //dont compare the middle pixel to itself
+        //iterate through neighbourhood
+        cv::MatConstIterator_<float> it = submat.begin<float>(), it_end = submat.end<float>();
+        for(; it != it_end; ++it)
+        { 
+          //if pixel distance to neighbour < distThresh -> they count as similar
+          if ( fabs(submat.at<float>(1,1) - *it) < config_.distThresh)
           {
-
-            if (fabs(submat.at<float>(4) - submat.at<float>(neighbour)) < config_.distThresh)
-            {
-              similarPixels++;
-            }
+            similarPixels++; 
           }
-        }
+        }  
+        similarPixels--; //middle pixel is similar to itself
+        //if there are enough similar pixels nearby, we enable that pixel through the edge matrix
         if (similarPixels > config_.similarThresh)
         {
           edges.at<float>(i, j) = 1;
@@ -150,11 +140,12 @@ void DepthFilter::similarFilter(cv::Mat img, cv::Mat edges)
   }
 }
 
+
 int main(int argc, char **argv)
 {
 
   ros::init(argc, argv, "depth_filter");
   DepthFilter df;
-  ros::spin();
+  ros::spin();  
   return 0;
 }

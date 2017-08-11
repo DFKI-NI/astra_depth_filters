@@ -23,7 +23,7 @@ class DepthFilter
 
   dynamic_reconfigure::Server<astra_depth_filters::DepthFilterConfig> server_;
 
-  cv_bridge::CvImagePtr lastFrame_;
+  double time_running;
 
   void reconfigure(astra_depth_filters::DepthFilterConfig &dfconfig, uint32_t level);
 
@@ -31,6 +31,7 @@ class DepthFilter
 
   void similarFilter(cv::Mat img, cv::Mat edges);
 public:
+
   DepthFilter();
 
 
