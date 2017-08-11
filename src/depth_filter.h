@@ -28,6 +28,8 @@ class DepthFilter
   void reconfigure(astra_depth_filters::DepthFilterConfig &dfconfig, uint32_t level);
 
   void processDepthImage(const sensor_msgs::ImageConstPtr& dimg);
+
+  void similarFilter(cv::Mat img, cv::Mat edges);
 public:
   DepthFilter();
 

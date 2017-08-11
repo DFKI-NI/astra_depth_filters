@@ -28,14 +28,14 @@ void DepthFilter::reconfigure(astra_depth_filters::DepthFilterConfig &dfconfig, 
  *
  */
 void DepthFilter::processDepthImage(const sensor_msgs::ImageConstPtr& dimg)
-{	
-	if(!config_.enable)
-	{
-		image_pub_.publish(dimg);
-		return;
-	}
+{
+  if (!config_.enable)
+  {
+    image_pub_.publish(dimg);
+    return;
+  }
 
-	clock_t start = clock();
+  clock_t start = clock();
 
   cv_bridge::CvImagePtr image_in;
   std_msgs::Header orig_header = dimg->header;
@@ -58,7 +58,7 @@ void DepthFilter::processDepthImage(const sensor_msgs::ImageConstPtr& dimg)
     return;
   }
   //std::cout << laplaceKernelSize << " " << filterThreshold << " " << dilateStructSize <<std::endl;
-  
+
   //find edges in the depth image
   cv::Mat edges;
   cv::Laplacian(image_in->image, edges, CV_32F, config_.laplaceKernelSize);
@@ -76,61 +76,78 @@ void DepthFilter::processDepthImage(const sensor_msgs::ImageConstPtr& dimg)
   //cv::rectangle(edges, border, color, thickness);
 
   //invert binary image
-  int invalidPixels = cv::countNonZero(edges);
-  ROS_INFO("Number of Pixels deleted: %i from %i", invalidPixels, edges.rows * edges.cols);
+
 
   edges = (edges - 1) * (-1);
 
   //try something!
-  for ( int i = 1 ; i < (image_in->image.rows)-1 ; i++ )
-  {
-    for ( int j = 1 ; j < (image_in->image.cols)-1 ; j++ )
-    {
-      int similarPixels = 0;
-      cv::Mat submat(image_in->image,cv::Rect(j-1,i-1,3,3));  
-      submat.resize(1);
-      if( edges.at<double>(i,j) == 0 )
-      { 
-        for ( int neighbour = 0 ; neighbour < 9 ; neighbour++)
-        { 
 
-          if(neighbour!=4) {
-            
-            if(abs(submat.at<double>(4)-submat.at<double>(neighbour))<1.0)
+  similarFilter(image_in->image, edges);
+
+  //edges = (edges - 1) * (-1); shows noise instead of image
+
+  int invalidPixels = cv::countNonZero(edges);
+  ROS_INFO("Number of Pixels deleted: %i from %i", (edges.rows * edges.cols) - invalidPixels, edges.rows * edges.cols);
+  //use edges to mask out the garbagepixels
+  cv::multiply(edges, image_in->image, image_in->image);
+
+
+
+  image_in->image.convertTo(image_out.image, CV_16UC1);
+
+  double min, max;
+  cv::minMaxLoc(image_out.image, &min, &max);
+  ROS_INFO("Min: %f ; Max: %f", min, max);
+  //time for one frame
+  clock_t end = clock();
+  double elapsed_secs = double(end - start) / CLOCKS_PER_SEC;
+  ROS_INFO("Time for frame: %f", elapsed_secs);
+
+
+  image_debug.image = edges;
+  image_debug_pub_.publish(image_debug.toImageMsg());
+  image_pub_.publish(image_out.toImageMsg());
+
+}
+/*
+* Filters pixels on edges: if pixels are similar to the neighbours, they will be taken into the result
+*
+*/
+void DepthFilter::similarFilter(cv::Mat img, cv::Mat edges)
+{
+  if (!config_.similarFilter)
+  {
+    return;
+  }
+  for (int i = 1 ; i < (img.rows) - 1 ; i++)
+  {
+    for (int j = 1 ; j < (img.cols) - 1 ; j++)
+    {
+      if (edges.at<float>(i, j) == 0)
+      {
+        int similarPixels = 0;
+        cv::Mat submat(img, cv::Rect(j - 1, i - 1, 3, 3));
+        submat = submat.clone(); //for continuosity (isContinuous)
+        submat.reshape(0, 1); //so we get a vector to iterate on
+        for (int neighbour = 0 ; neighbour < 9 ; neighbour++)
+        {
+
+          if (neighbour != 4) //dont compare the middle pixel to itself
+          {
+
+            if (fabs(submat.at<float>(4) - submat.at<float>(neighbour)) < config_.distThresh)
             {
-              ROS_INFO("difference: %f", submat.at<double>(4));
               similarPixels++;
             }
           }
         }
-        if (similarPixels<4)
+        if (similarPixels > config_.similarThresh)
         {
-          image_in->image.at<double>(i,j) = 0;
+          edges.at<float>(i, j) = 1;
         }
-        ROS_INFO("Pixels: %d",similarPixels);
       }
     }
   }
-
-
-
-  //use edges to mask out the garbagepixels
-  //cv::multiply(edges, image_in->image, image_in->image);
-
-  image_in->image.convertTo(image_out.image, CV_16UC1);
-  
-  double min,max;
-  cv::minMaxLoc(image_out.image, &min, &max);
-  ROS_INFO("Min: %f ; Max: %f", min, max);
-  //time for one frame
-	//clock_t end = clock();
-	//double elapsed_secs = double(end - start) / CLOCKS_PER_SEC;
-	//ROS_INFO("Time for frame: %f", elapsed_secs);
-
-  
-  image_debug.image = edges;
-  image_debug_pub_.publish(image_debug.toImageMsg() );
-  image_pub_.publish(image_out.toImageMsg());
 }
 
 int main(int argc, char **argv)
