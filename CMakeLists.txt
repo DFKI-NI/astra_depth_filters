@@ -89,6 +89,7 @@ find_package(catkin REQUIRED COMPONENTS roscpp image_transport std_msgs sensor_m
 # )
 generate_dynamic_reconfigure_options(
   cfg/depth_filter.cfg
+  cfg/noise_filter.cfg
 )
 
 
@@ -150,6 +151,9 @@ add_executable(depth_filter src/depth_filter.cpp src/depth_filter.h)
 add_dependencies(depth_filter ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(depth_filter ${catkin_LIBRARIES})
 
+add_executable(noise_filter src/noise_filter.cpp src/noise_filter.h)
+add_dependencies(noise_filter ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(noise_filter ${catkin_LIBRARIES})
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
