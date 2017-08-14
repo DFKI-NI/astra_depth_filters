@@ -53,10 +53,20 @@
     
     <!-- remapping added for depth_filter -->
     <remap from="$(arg depth)/image_raw" to="$(arg depth)/image_raw_unfiltered" />
+    <remap from="$(arg depth_registered)/image_raw" to="$(arg depth_registered)/image_raw_unfiltered" />
+
   </node>
 
   <node pkg="astra_depth_filters" type="depth_filter" name="depth_filter" output="screen">
     <remap from="image_raw" to="$(arg depth)/image_raw_unfiltered" />
     <remap from="image_raw_filtered" to="$(arg depth)/image_raw" />
   </node>
+
+  <node pkg="astra_depth_filters" type="depth_filter" name="depth_registered_filter" output="screen">
+    <remap from="depth_filter_debug_image" to="$(arg depth_registered)/depth_filter_debug" />
+    <remap from="image_raw" to="$(arg depth_registered)/image_raw_unfiltered" />
+    <remap from="image_raw_filtered" to="$(arg depth_registered)/image_raw" />
+  </node>
+
+
 </launch>

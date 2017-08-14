@@ -25,6 +25,12 @@ class DepthFilter
 
   double time_running;
 
+  void removeNaNs(cv::Mat image);
+
+  void insertNaNs(cv::Mat image);
+
+  void filter(cv_bridge::CvImagePtr image_in);
+
   void reconfigure(astra_depth_filters::DepthFilterConfig &dfconfig, uint32_t level);
 
   void processDepthImage(const sensor_msgs::ImageConstPtr& dimg);

@@ -14,10 +14,10 @@ DepthFilter::DepthFilter() :
 
 void DepthFilter::reconfigure(astra_depth_filters::DepthFilterConfig &dfconfig, uint32_t level)
 {
-  if (dfconfig.laplaceKernelSize % 2 == 0)
+  if (dfconfig.laplace_kernel_size % 2 == 0)
   {
     // laplaceKernelSize is even -> reset to previous value
-    dfconfig.laplaceKernelSize = config_.laplaceKernelSize;
+    dfconfig.laplace_kernel_size = config_.laplace_kernel_size;
   }
   config_ = dfconfig;
 }
@@ -35,21 +35,19 @@ void DepthFilter::processDepthImage(const sensor_msgs::ImageConstPtr& dimg)
     return;
   }
 
-  clock_t start = clock();
+  // clock_t start = clock();
+
+  int outputEncoding;
 
   cv_bridge::CvImagePtr image_in;
-  std_msgs::Header orig_header = dimg->header;
   //output image
   cv_bridge::CvImage image_out;
-  image_out.header = orig_header;
-  image_out.encoding = "16UC1";
-  //debug image
-  cv_bridge::CvImage image_debug;
-  image_debug.header = orig_header;
-  image_debug.encoding = "32FC1";
+  image_out.header = dimg->header;
+  image_out.encoding = dimg->encoding;
+
+  //converts image to 32bitfloat format
   try
   {
-    //converts image to 32bitfloat format
     image_in = cv_bridge::toCvCopy(dimg, "32FC1"/*TYPE*/);
   }
   catch (cv_bridge::Exception& e)
@@ -57,55 +55,117 @@ void DepthFilter::processDepthImage(const sensor_msgs::ImageConstPtr& dimg)
     ROS_ERROR("CV Bridge Error: %s", e.what());
     return;
   }
+  //there are NaNs in the float image! (depth_registered)
+  if (std::strncmp(dimg->encoding.c_str(), "32FC1", 6) == 0) //returns 0 if equal.........
+  {
+    outputEncoding = CV_32FC1;
+    removeNaNs(image_in->image);
+    image_in->image *= 1000.0; //convert to mm scale
+  }
+  else if (std::strncmp(dimg->encoding.c_str(), "16UC1", 6) == 0)
+  {
+    outputEncoding = CV_16UC1;
+  }
 
+  filter(image_in);
+
+  //revert to meter scale
+  if (outputEncoding == CV_32FC1)
+  {
+    image_in->image /= 1000;
+  }
+
+  insertNaNs(image_in->image);
+
+  image_in->image.convertTo(image_out.image, outputEncoding);
+  image_pub_.publish(image_out.toImageMsg());
+
+  //time for one frame
+  // clock_t end = clock();
+
+  // double elapsed_secs = double(end - start) / CLOCKS_PER_SEC;
+  //time_running += elapsed_secs;
+  // ROS_INFO("Time for frame: %f", elapsed_secs);
+  //ROS_INFO("Time for frame: %f", time_running);
+}
+
+/*
+* replaces all NaNs with zeros
+*/
+void DepthFilter::removeNaNs(cv::Mat image)
+{
+  for (int i = 0 ; i < image.rows ; i++)
+  {
+    for (int j = 0 ; j < image.cols ; j++)
+    {
+      if (std::isnan(image.at<float>(i, j)))
+      {
+        image.at<float>(i, j) = 0;
+      }
+    }
+  }
+}
+/*
+* replaces all zeros with NaNs
+*/
+void DepthFilter::insertNaNs(cv::Mat image)
+{
+  for (int i = 0 ; i < image.rows ; i++)
+  {
+    for (int j = 0 ; j < image.cols ; j++)
+    {
+      if (image.at<float>(i, j) == 0)
+      {
+        image.at<float>(i, j) = std::numeric_limits<double>::quiet_NaN();
+      }
+    }
+  }
+}
+/*
+* filters the depth image by applying a laplace filter, dilating the resulting edge mask and then masking the remaining pixels
+*
+*/
+void DepthFilter::filter(cv_bridge::CvImagePtr image_in)
+{
   //find edges in the depth image
   cv::Mat edges;
-  cv::Laplacian(image_in->image, edges, CV_32F, config_.laplaceKernelSize);
-
+  cv::Laplacian(image_in->image, edges, CV_32FC1, config_.laplace_kernel_size);
   //convert to binary (high values at edges-> set everything above threshold to 1, rest 0)
-  cv::threshold(edges, edges, config_.filterThreshold, 1, CV_THRESH_BINARY);
+  cv::threshold(edges, edges, config_.filter_threshold, 1, CV_THRESH_BINARY);
   //broaden the edges
-  cv::Mat structElem = cv::getStructuringElement(config_.structShape, cv::Size(config_.dilateStructSize, config_.dilateStructSize));
+  cv::Mat structElem = cv::getStructuringElement(config_.struct_shape, cv::Size(config_.dilate_struct_size, config_.dilate_struct_size));
   cv::dilate(edges, edges, structElem);
-
 
   //invert binary image
   edges = (edges - 1) * (-1);
 
   //call the similarFilter
-
   similarFilter(image_in->image, edges);
 
   //edges = (edges - 1) * (-1); shows noise instead of image
 
   //int invalidPixels = cv::countNonZero(edges);
   //ROS_INFO("Number of Pixels deleted: %i from %i", (edges.rows * edges.cols) - invalidPixels, edges.rows * edges.cols);
-  
+
   //use edges to mask out the garbagepixels
   cv::multiply(edges, image_in->image, image_in->image);
-  //image_raw needs to be 16UC1 format
-  image_in->image.convertTo(image_out.image, CV_16UC1);
-
-  //time for one frame
-  clock_t end = clock();
-
-  // double elapsed_secs = double(end - start) / CLOCKS_PER_SEC;
-  // time_running += elapsed_secs;
-  //ROS_INFO("Time for frame: %f", elapsed_secs);
 
 
+  cv_bridge::CvImage image_debug;
+  image_debug.header = image_in->header;
+  image_debug.encoding = "32FC1";
   image_debug.image = edges;
   image_debug_pub_.publish(image_debug.toImageMsg());
-  image_pub_.publish(image_out.toImageMsg());
- // ROS_INFO("Time for frame: %f", time_running);
+
 }
+
 /*
 * Filters pixels on edges: if pixels are similar to the neighbours, they will be taken into the result
 *
 */
 void DepthFilter::similarFilter(cv::Mat img, cv::Mat edges)
 {
-  if (!config_.similarFilter)
+  if (!config_.similar_filter)
   {
     return;
   }
@@ -121,17 +181,17 @@ void DepthFilter::similarFilter(cv::Mat img, cv::Mat edges)
 
         //iterate through neighbourhood
         cv::MatConstIterator_<float> it = submat.begin<float>(), it_end = submat.end<float>();
-        for(; it != it_end; ++it)
-        { 
+        for (; it != it_end; ++it)
+        {
           //if pixel distance to neighbour < distThresh -> they count as similar
-          if ( fabs(submat.at<float>(1,1) - *it) < config_.distThresh)
+          if (fabs(submat.at<float>(1, 1) - *it) < config_.dist_thresh)
           {
-            similarPixels++; 
+            similarPixels++;
           }
-        }  
+        }
         similarPixels--; //middle pixel is similar to itself
         //if there are enough similar pixels nearby, we enable that pixel through the edge matrix
-        if (similarPixels > config_.similarThresh)
+        if (similarPixels > config_.similar_thresh)
         {
           edges.at<float>(i, j) = 1;
         }
@@ -146,6 +206,6 @@ int main(int argc, char **argv)
 
   ros::init(argc, argv, "depth_filter");
   DepthFilter df;
-  ros::spin();  
+  ros::spin();
   return 0;
 }
