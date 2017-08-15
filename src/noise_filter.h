@@ -7,6 +7,7 @@
 #include <dynamic_reconfigure/server.h>
 #include <astra_depth_filters/NoiseFilterConfig.h>
 #include <ctime>
+
 class NoiseFilter
 {
   ros::NodeHandle n_;
@@ -20,6 +21,14 @@ class NoiseFilter
   astra_depth_filters::NoiseFilterConfig config_;
 
   dynamic_reconfigure::Server<astra_depth_filters::NoiseFilterConfig> server_;
+
+  int numSubscribers;
+
+  void connectCb();
+
+  void discCb();
+
+  void filter(cv::Mat image);
 
   void reconfigure(astra_depth_filters::NoiseFilterConfig &dfconfig, uint32_t level);
 

@@ -35,7 +35,7 @@ class DepthFilter
 
   void insertNaNs(cv::Mat image);
 
-  void filter(cv_bridge::CvImagePtr image_in);
+  void filter(cv::Mat image);
 
   void reconfigure(astra_depth_filters::DepthFilterConfig &dfconfig, uint32_t level);
 

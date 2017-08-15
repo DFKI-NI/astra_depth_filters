@@ -1,14 +1,36 @@
 #include "noise_filter.h"
 
 NoiseFilter::NoiseFilter() :
-  depth_it_(n_)
+  depth_it_(n_),
+  numSubscribers(0)
 {
-  sub_ = depth_it_.subscribe("camera/depth/image_raw", 1, &NoiseFilter::processDepthImage, this);
-  image_pub_ = depth_it_.advertise("camera/depth/image_raw_noisefilter", 1);
+  image_transport::SubscriberStatusCallback itsscConnect = boost::bind(&NoiseFilter::connectCb, this);
+  image_transport::SubscriberStatusCallback itsscDisc = boost::bind(&NoiseFilter::discCb, this);
+  image_pub_ = depth_it_.advertise("image_raw_filtered", 1, itsscConnect, itsscDisc);
 
   dynamic_reconfigure::Server<astra_depth_filters::NoiseFilterConfig>::CallbackType f;
   f = boost::bind(&NoiseFilter::reconfigure, this , _1, _2);
   server_.setCallback(f);
+}
+
+void NoiseFilter::connectCb()
+{
+  if (numSubscribers == 0)
+  {
+    sub_ = depth_it_.subscribe("image_raw", 1, &NoiseFilter::processDepthImage, this);
+  }
+  ROS_INFO("NoiseFilter Running");
+  ++numSubscribers;
+}
+
+void NoiseFilter::discCb()
+{
+  if (image_pub_.getNumSubscribers() == 0)
+  {
+    numSubscribers = 0;
+    sub_.shutdown();
+    ROS_INFO("NoiseFilter shutting down...");
+  }
 }
 
 void NoiseFilter::reconfigure(astra_depth_filters::NoiseFilterConfig &dfconfig, uint32_t level)
@@ -29,12 +51,14 @@ void NoiseFilter::processDepthImage(const sensor_msgs::ImageConstPtr& dimg)
     return;
   }
 
+  int outputEncoding;
+
   cv_bridge::CvImagePtr image_in;
-  std_msgs::Header orig_header = dimg->header;
   //output image
   cv_bridge::CvImage image_out;
-  image_out.header = orig_header;
-  image_out.encoding = "16UC1";
+  image_out.header = dimg->header;
+  image_out.encoding = dimg->encoding;
+
   try
   {
     //converts image to 32bitfloat format
@@ -45,36 +69,73 @@ void NoiseFilter::processDepthImage(const sensor_msgs::ImageConstPtr& dimg)
     ROS_ERROR("CV Bridge Error: %s", e.what());
     return;
   }
-  
 
-  for (int i = 0; i < image_in->image.rows; i++)
+
+  if (std::strncmp(dimg->encoding.c_str(), "32FC1", 6) == 0) //returns 0 if equal.........
   {
-    
-    //const float* Mi = image_in->image.ptr<float>(i);
-    for ( int step = 0 ; step < image_in->image.cols-config_.filterWidth ; step+= config_.filterWidth)
-    {
-      float rowdiff = 0;
-      cv::Mat submat(image_in->image,cv::Rect(step,i,config_.filterWidth,1));
-      //submat=submat.clone();
-      const float* Mi =submat.ptr<float>(1);
-      for (int j = 0; j < submat.cols-1; j++)
-      {
-        rowdiff += fabs(Mi[j] - Mi[j+1]); 
-      }
-      
-      if (rowdiff > config_.diffThresh)
-      {
-        submat.row(0).setTo(0);
-  //      ROS_ERROR("submat size: %d", submat.row(0).cols);
-      }
-    }
+    outputEncoding = CV_32FC1;
+    image_in->image *= 1000.0; //convert to mm scale
+  }
+  else if (std::strncmp(dimg->encoding.c_str(), "16UC1", 6) == 0)
+  {
+    outputEncoding = CV_16UC1;
   }
 
 
+  filter(image_in->image);
 
-  image_in->image.convertTo(image_out.image, CV_16UC1);
+
+  if (outputEncoding == CV_32FC1)
+  {
+    image_in->image /= 1000;
+  }
+
+  image_in->image.convertTo(image_out.image, outputEncoding);
 
   image_pub_.publish(image_out.toImageMsg());
+}
+
+/*
+* applies a noisefilter that iterates over rows, adds up the absolute differences and setting rows to zero which surpass threshold
+*
+*/
+void NoiseFilter::filter(cv::Mat image)
+{
+  int noiseRows = 0;
+  int row = 0;
+  for (; row < image.rows; row++)
+  {
+    const float* Mi = image.ptr<float>(row); //get pointer on row for easy []-access
+    float rowdiff = 0;
+    for (int j = 0; j < image.cols - 1; j++) //sum up all the differences per row
+    {
+      if (std::isnormal(Mi[j]) && std::isnormal(Mi[j + 1]))
+      {
+        rowdiff += fabs(Mi[j] - Mi[j + 1]);
+      }
+    }
+    //and compare them to the threshold
+    if (rowdiff > config_.diff_thresh)
+    {
+      noiseRows++;
+    }
+    else
+    {
+      noiseRows = 0; //only consectutive rows count
+    }
+
+    if (noiseRows > config_.min_noise_rows)
+    {
+      row -= (noiseRows - 1); //remove all rows starting from the first in the set
+      break;
+    }
+  }
+  //set all lower rows to 0 starting at row
+  for (; noiseRows > config_.min_noise_rows &&  row < image.rows; row++)
+  {
+    image.row(row).setTo(0);
+  }
+
 }
 
 int main(int argc, char **argv)

@@ -22,6 +22,7 @@ void DepthFilter::connectCb()
   {
     sub_ = depth_it_.subscribe("image_raw", 1, &DepthFilter::processDepthImage, this);
   }
+  ROS_INFO("DepthFilter Running");
   ++numSubscribers;
 }
 
@@ -31,6 +32,7 @@ void DepthFilter::discCb()
   {
     numSubscribers = 0;
     sub_.shutdown();
+    ROS_INFO("DepthFilter shutting down...");
   }
 }
 
@@ -89,7 +91,7 @@ void DepthFilter::processDepthImage(const sensor_msgs::ImageConstPtr& dimg)
     outputEncoding = CV_16UC1;
   }
 
-  filter(image_in);
+  filter(image_in->image);
 
   //revert to meter scale
   if (outputEncoding == CV_32FC1)
@@ -147,11 +149,11 @@ void DepthFilter::insertNaNs(cv::Mat image)
 * filters the depth image by applying a laplace filter, dilating the resulting edge mask and then masking the remaining pixels
 *
 */
-void DepthFilter::filter(cv_bridge::CvImagePtr image_in)
+void DepthFilter::filter(cv::Mat image)
 {
   //find edges in the depth image
   cv::Mat edges;
-  cv::Laplacian(image_in->image, edges, CV_32FC1, config_.laplace_kernel_size);
+  cv::Laplacian(image, edges, CV_32FC1, config_.laplace_kernel_size);
   //convert to binary (high values at edges-> set everything above threshold to 1, rest 0)
   cv::threshold(edges, edges, config_.filter_threshold, 1, CV_THRESH_BINARY);
   //broaden the edges
@@ -162,7 +164,7 @@ void DepthFilter::filter(cv_bridge::CvImagePtr image_in)
   edges = (edges - 1) * (-1);
 
   //call the similarFilter
-  similarFilter(image_in->image, edges);
+  similarFilter(image, edges);
 
   //edges = (edges - 1) * (-1); shows noise instead of image
 
@@ -170,7 +172,7 @@ void DepthFilter::filter(cv_bridge::CvImagePtr image_in)
   //ROS_INFO("Number of Pixels deleted: %i from %i", (edges.rows * edges.cols) - invalidPixels, edges.rows * edges.cols);
 
   //use edges to mask out the garbagepixels
-  cv::multiply(edges, image_in->image, image_in->image);
+  cv::multiply(edges, image, image);
 
 
   // cv_bridge::CvImage image_debug;
