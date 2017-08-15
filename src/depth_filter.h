@@ -25,6 +25,12 @@ class DepthFilter
 
   double time_running;
 
+  int numSubscribers;
+
+  void connectCb();
+
+  void discCb();
+
   void removeNaNs(cv::Mat image);
 
   void insertNaNs(cv::Mat image);

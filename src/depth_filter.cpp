@@ -1,15 +1,37 @@
 #include "depth_filter.h"
 
 DepthFilter::DepthFilter() :
-  depth_it_(n_)
+  depth_it_(n_),
+  numSubscribers(0),
+  time_running(0)
 {
-  sub_ = depth_it_.subscribe("image_raw", 1, &DepthFilter::processDepthImage, this);
-  image_pub_ = depth_it_.advertise("image_raw_filtered", 1);
-  image_debug_pub_ = depth_it_.advertise("depth_filter_debug_image", 1);
+
+  image_transport::SubscriberStatusCallback itsscConnect = boost::bind(&DepthFilter::connectCb, this);
+  image_transport::SubscriberStatusCallback itsscDisc = boost::bind(&DepthFilter::discCb, this);
+  image_pub_ = depth_it_.advertise("image_raw_filtered", 1, itsscConnect, itsscDisc);
+  // image_debug_pub_ = depth_it_.advertise("depth_filter_debug_image", 1);
 
   dynamic_reconfigure::Server<astra_depth_filters::DepthFilterConfig>::CallbackType f;
   f = boost::bind(&DepthFilter::reconfigure, this , _1, _2);
   server_.setCallback(f);
+}
+
+void DepthFilter::connectCb()
+{
+  if (numSubscribers == 0)
+  {
+    sub_ = depth_it_.subscribe("image_raw", 1, &DepthFilter::processDepthImage, this);
+  }
+  ++numSubscribers;
+}
+
+void DepthFilter::discCb()
+{
+  if (image_pub_.getNumSubscribers() == 0)
+  {
+    numSubscribers = 0;
+    sub_.shutdown();
+  }
 }
 
 void DepthFilter::reconfigure(astra_depth_filters::DepthFilterConfig &dfconfig, uint32_t level)
@@ -151,11 +173,11 @@ void DepthFilter::filter(cv_bridge::CvImagePtr image_in)
   cv::multiply(edges, image_in->image, image_in->image);
 
 
-  cv_bridge::CvImage image_debug;
-  image_debug.header = image_in->header;
-  image_debug.encoding = "32FC1";
-  image_debug.image = edges;
-  image_debug_pub_.publish(image_debug.toImageMsg());
+  // cv_bridge::CvImage image_debug;
+  // image_debug.header = image_in->header;
+  // image_debug.encoding = "32FC1";
+  // image_debug.image = edges;
+  // image_debug_pub_.publish(image_debug.toImageMsg());
 
 }
 
