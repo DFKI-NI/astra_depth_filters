@@ -1,6 +1,7 @@
 #include "depth_filter.h"
 
-DepthFilter::DepthFilter() :
+DepthFilter::DepthFilter(ros::NodeHandle n) :
+  n_(n),
   depth_it_(n_),
   numSubscribers(0),
   time_running(0)
@@ -22,7 +23,7 @@ void DepthFilter::connectCb()
   {
     sub_ = depth_it_.subscribe("image_raw", 1, &DepthFilter::processDepthImage, this);
   }
-  ROS_INFO("DepthFilter Running");
+  //ROS_INFO("DepthFilter Running");
   ++numSubscribers;
 }
 
@@ -32,7 +33,7 @@ void DepthFilter::discCb()
   {
     numSubscribers = 0;
     sub_.shutdown();
-    ROS_INFO("DepthFilter shutting down...");
+    //ROS_INFO("DepthFilter shutting down...");
   }
 }
 
@@ -134,16 +135,7 @@ void DepthFilter::removeNaNs(cv::Mat image)
 */
 void DepthFilter::insertNaNs(cv::Mat image)
 {
-  for (int i = 0 ; i < image.rows ; i++)
-  {
-    for (int j = 0 ; j < image.cols ; j++)
-    {
-      if (image.at<float>(i, j) == 0)
-      {
-        image.at<float>(i, j) = std::numeric_limits<double>::quiet_NaN();
-      }
-    }
-  }
+  image.setTo(std::numeric_limits<double>::quiet_NaN(), image == 0);
 }
 /*
 * filters the depth image by applying a laplace filter, dilating the resulting edge mask and then masking the remaining pixels
@@ -222,14 +214,4 @@ void DepthFilter::similarFilter(cv::Mat img, cv::Mat edges)
       }
     }
   }
-}
-
-
-int main(int argc, char **argv)
-{
-
-  ros::init(argc, argv, "depth_filter");
-  DepthFilter df;
-  ros::spin();
-  return 0;
 }

@@ -1,6 +1,7 @@
 #include "noise_filter.h"
 
-NoiseFilter::NoiseFilter() :
+NoiseFilter::NoiseFilter(ros::NodeHandle n) :
+  n_(n),
   depth_it_(n_),
   numSubscribers(0)
 {
@@ -19,7 +20,7 @@ void NoiseFilter::connectCb()
   {
     sub_ = depth_it_.subscribe("image_raw", 1, &NoiseFilter::processDepthImage, this);
   }
-  ROS_INFO("NoiseFilter Running");
+  // ROS_INFO("NoiseFilter Running");
   ++numSubscribers;
 }
 
@@ -29,7 +30,7 @@ void NoiseFilter::discCb()
   {
     numSubscribers = 0;
     sub_.shutdown();
-    ROS_INFO("NoiseFilter shutting down...");
+    // ROS_INFO("NoiseFilter shutting down...");
   }
 }
 
@@ -81,13 +82,14 @@ void NoiseFilter::processDepthImage(const sensor_msgs::ImageConstPtr& dimg)
     outputEncoding = CV_16UC1;
   }
 
-
   filter(image_in->image);
 
 
   if (outputEncoding == CV_32FC1)
   {
     image_in->image /= 1000;
+    //set zeros to NaN
+    image_in->image.setTo(std::numeric_limits<double>::quiet_NaN(), image_in->image == 0);
   }
 
   image_in->image.convertTo(image_out.image, outputEncoding);
@@ -136,13 +138,4 @@ void NoiseFilter::filter(cv::Mat image)
     image.row(row).setTo(0);
   }
 
-}
-
-int main(int argc, char **argv)
-{
-
-  ros::init(argc, argv, "temp_noise_filter");
-  NoiseFilter df;
-  ros::spin();
-  return 0;
 }

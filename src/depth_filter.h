@@ -44,7 +44,7 @@ class DepthFilter
   void similarFilter(cv::Mat img, cv::Mat edges);
 public:
 
-  DepthFilter();
+  DepthFilter(ros::NodeHandle n);
 
 
 };

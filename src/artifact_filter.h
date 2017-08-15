@@ -5,10 +5,10 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <dynamic_reconfigure/server.h>
-#include <astra_depth_filters/NoiseFilterConfig.h>
+#include <astra_depth_filters/ArtifactFilterConfig.h>
 #include <ctime>
 
-class NoiseFilter
+class ArtifactFilter
 {
   ros::NodeHandle n_;
 
@@ -18,9 +18,9 @@ class NoiseFilter
 
   image_transport::Subscriber sub_;
 
-  astra_depth_filters::NoiseFilterConfig config_;
+  astra_depth_filters::ArtifactFilterConfig config_;
 
-  dynamic_reconfigure::Server<astra_depth_filters::NoiseFilterConfig> server_;
+  dynamic_reconfigure::Server<astra_depth_filters::ArtifactFilterConfig> server_;
 
   int numSubscribers;
 
@@ -28,13 +28,13 @@ class NoiseFilter
 
   void discCb();
 
-  void filter(cv::Mat image);
+  void filterArtifact(cv::Mat image);
 
-  void reconfigure(astra_depth_filters::NoiseFilterConfig &dfconfig, uint32_t level);
+  void reconfigure(astra_depth_filters::ArtifactFilterConfig &dfconfig, uint32_t level);
 
   void processDepthImage(const sensor_msgs::ImageConstPtr& dimg);
 public:
-  NoiseFilter(ros::NodeHandle n);
+  ArtifactFilter(ros::NodeHandle n);
 
 
 };
