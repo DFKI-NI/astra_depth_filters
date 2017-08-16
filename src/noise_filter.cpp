@@ -128,7 +128,7 @@ void NoiseFilter::filter(cv::Mat image)
 
     if (noiseRows > config_.min_noise_rows)
     {
-      row -= (noiseRows - 1); //remove all rows starting from the first in the set
+      row -= (noiseRows - 1) + config_.add_rows; //remove all rows starting from the first in the set
       break;
     }
   }

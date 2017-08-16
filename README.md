@@ -106,6 +106,10 @@ package for details on dynamically reconfigurable parameters.
 
 - The threshold which determines the level of noise a row must contain in order to be marked as invalid.
 
+`~add_rows` (int, default: 5)
+
+- Number of rows above detection that will be removed.
+
 ### __depth_filter__
 
 #### Subscribed Topics
