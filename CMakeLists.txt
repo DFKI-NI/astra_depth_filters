@@ -7,7 +7,7 @@ project(astra_depth_filters)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp image_transport std_msgs sensor_msgs cv_bridge dynamic_reconfigure)
+find_package(catkin REQUIRED COMPONENTS roscpp image_transport std_msgs sensor_msgs cv_bridge dynamic_reconfigure nodelet)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -118,7 +118,7 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+	include
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -146,19 +146,50 @@ include_directories(
 ## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
 # set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
 
-## Add cmake target dependencies of the executable
-## same as for the library above
-add_executable(depth_filter src/depth_filter_node.cpp src/depth_filter.cpp src/depth_filter.h)
-add_dependencies(depth_filter ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(depth_filter ${catkin_LIBRARIES})
+# create artifact_filter library
+add_library (artifact_filter src/artifact_filter.cpp)
+add_dependencies(artifact_filter ${PROJECT_NAME}_gencfg)
+target_link_libraries(artifact_filter ${catkin_LIBRARIES})
 
-add_executable(noise_filter src/noise_filter_node.cpp src/noise_filter.cpp src/noise_filter.h)
-add_dependencies(noise_filter ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# create artifact_filter_nodelet library
+add_library (artifact_filter_nodelet src/artifact_filter_nodelet.cpp)
+add_dependencies(artifact_filter_nodelet ${PROJECT_NAME}_gencfg)
+target_link_libraries(artifact_filter_nodelet artifact_filter ${catkin_LIBRARIES})
+
+# create artifact_filter library
+add_library (noise_filter src/noise_filter.cpp)
+add_dependencies(noise_filter ${PROJECT_NAME}_gencfg)
 target_link_libraries(noise_filter ${catkin_LIBRARIES})
 
-add_executable(artifact_filter src/artifact_filter_node.cpp src/artifact_filter.cpp src/artifact_filter.h)
-add_dependencies(artifact_filter ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(artifact_filter ${catkin_LIBRARIES})
+# create artifact_filter_nodelet library
+add_library (noise_filter_nodelet src/noise_filter_nodelet.cpp)
+add_dependencies(noise_filter_nodelet ${PROJECT_NAME}_gencfg)
+target_link_libraries(noise_filter_nodelet noise_filter ${catkin_LIBRARIES})
+
+# create artifact_filter library
+add_library (depth_filter src/depth_filter.cpp)
+add_dependencies(depth_filter ${PROJECT_NAME}_gencfg)
+target_link_libraries(depth_filter ${catkin_LIBRARIES})
+
+# create artifact_filter_nodelet library
+add_library (depth_filter_nodelet src/depth_filter_nodelet.cpp)
+add_dependencies(depth_filter_nodelet ${PROJECT_NAME}_gencfg)
+target_link_libraries(depth_filter_nodelet depth_filter ${catkin_LIBRARIES})
+
+
+## Add cmake target dependencies of the executable
+## same as for the library above
+add_executable(depth_filter_node src/depth_filter_node.cpp src/depth_filter.cpp)
+add_dependencies(depth_filter_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(depth_filter_node ${catkin_LIBRARIES})
+
+add_executable(noise_filter_node src/noise_filter_node.cpp src/noise_filter.cpp)
+add_dependencies(noise_filter_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(noise_filter_node ${catkin_LIBRARIES})
+
+add_executable(artifact_filter_node src/artifact_filter_node.cpp src/artifact_filter.cpp)
+add_dependencies(artifact_filter_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(artifact_filter_node ${catkin_LIBRARIES})
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
@@ -179,19 +210,23 @@ target_link_libraries(artifact_filter ${catkin_LIBRARIES})
 # )
 
 ## Mark executables and/or libraries for installation
-install(TARGETS depth_filter
+install(TARGETS depth_filter depth_filter_node depth_filter_nodelet noise_filter noise_filter_node noise_filter_nodelet artifact_filter artifact_filter_node artifact_filter_nodelet
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-## Mark cpp header files for installation
-# install(DIRECTORY include/${PROJECT_NAME}/
-#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#   FILES_MATCHING PATTERN "*.h"
-#   PATTERN ".svn" EXCLUDE
-# )
 
+## Mark cpp header files for installation
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.h"
+  PATTERN ".svn" EXCLUDE
+)
+
+install(FILES nodelet_plugins.xml
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 # install(FILES
 #   # myfile1

@@ -1,9 +1,11 @@
-#include "artifact_filter.h"
+#include "astra_depth_filters/artifact_filter.h"
 
-ArtifactFilter::ArtifactFilter(ros::NodeHandle n) :
-  n_(n),
-  depth_it_(n_),
-  numSubscribers(0)
+ArtifactFilter::ArtifactFilter(ros::NodeHandle nh, ros::NodeHandle nh_priv) :
+  nh_(nh),
+  nh_priv_(nh_priv),
+  depth_it_(nh_),
+  numSubscribers(0),
+  server_(nh_priv_)
 {
   image_transport::SubscriberStatusCallback itsscConnect = boost::bind(&ArtifactFilter::connectCb, this);
   image_transport::SubscriberStatusCallback itsscDisc = boost::bind(&ArtifactFilter::discCb, this);

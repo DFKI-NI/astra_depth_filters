@@ -1,0 +1,23 @@
+<library path="lib/libartifact_filter_nodelet">
+  <class name="astra_depth_filters/ArtifactFilterNodelet" type="ArtifactFilterNodelet" base_class_type="nodelet::Nodelet">
+  <description>
+  The Artifact Filter nodelet.
+  </description>
+  </class>
+</library>
+
+<library path="lib/libnoise_filter_nodelet">
+  <class name="astra_depth_filters/NoiseFilterNodelet" type="NoiseFilterNodelet" base_class_type="nodelet::Nodelet">
+  <description>
+  The Noise Filter nodelet.
+  </description>
+  </class>
+</library>
+
+<library path="lib/libdepth_filter_nodelet">
+  <class name="astra_depth_filters/DepthFilterNodelet" type="DepthFilterNodelet" base_class_type="nodelet::Nodelet">
+  <description>
+  The Depth Filter nodelet.
+  </description>
+  </class>
+</library>

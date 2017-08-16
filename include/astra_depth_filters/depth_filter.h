@@ -9,7 +9,9 @@
 #include <ctime>
 class DepthFilter
 {
-  ros::NodeHandle n_;
+  ros::NodeHandle nh_;
+
+  ros::NodeHandle nh_priv_;
 
   image_transport::ImageTransport depth_it_;
 
@@ -44,7 +46,7 @@ class DepthFilter
   void similarFilter(cv::Mat img, cv::Mat edges);
 public:
 
-  DepthFilter(ros::NodeHandle n);
+  DepthFilter(ros::NodeHandle nh, ros::NodeHandle nh_priv);
 
 
 };

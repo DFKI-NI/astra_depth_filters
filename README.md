@@ -16,7 +16,11 @@ Noise filter
 This filter is designed to remove the noise occuring when objects are directly in front of the camera.
 It will mark all rows below a certain point as invalid if 3 (min_noise_rows) consecutive rows contain at least a certain (diff_thresh) level of noise. 
 
+Noise at semi-close range:
+
 <img src="img/orbbec_astra_close.jpg" width="320">  <img src="img/close_filtered.jpg" width="320">
+
+Noise at close range:
 
 <img src="img/orbbec_astra_really_close.jpg" width="320">   <img src="img/really_close_filtered.jpg" width="320">
 

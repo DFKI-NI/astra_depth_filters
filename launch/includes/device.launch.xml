@@ -57,35 +57,35 @@
 
   </node>
 
-  <node pkg="astra_depth_filters" type="depth_filter" name="depth_filter" output="screen">
-    <remap from="image_raw" to="$(arg depth)/image_raw_noisefilter" />
-    <remap from="image_raw_filtered" to="$(arg depth)/image_raw" />
-  </node>
+    <node pkg="nodelet" type="nodelet" name="depth_filter_nodelet" args="load astra_depth_filters/DepthFilterNodelet $(arg manager)" output="screen">
+      <remap from="image_raw" to="$(arg depth)/image_raw_noisefilter" />
+      <remap from="image_raw_filtered" to="$(arg depth)/image_raw" />
+    </node> 
 
-  <node pkg="astra_depth_filters" type="depth_filter" name="depth_registered_filter" output="screen">
-    <remap from="image_raw" to="$(arg depth_registered)/image_raw_noisefilter" />
-    <remap from="image_raw_filtered" to="$(arg depth_registered)/image_raw" />
-  </node>
+    <node pkg="nodelet" type="nodelet" name="noise_filter_nodelet" args="load astra_depth_filters/NoiseFilterNodelet $(arg manager)" output="screen">
+      <remap from="image_raw" to="$(arg depth)/image_raw_artifactfilter" />
+      <remap from="image_raw_filtered" to="$(arg depth)/image_raw_noisefilter" />
+    </node>
 
-  <node pkg="astra_depth_filters" type="noise_filter" name="noise_filter" output="screen">
-    <remap from="image_raw" to="$(arg depth)/image_raw_artifactfilter" />
-    <remap from="image_raw_filtered" to="$(arg depth)/image_raw_noisefilter" />
-  </node>
-  
-  <node pkg="astra_depth_filters" type="noise_filter" name="dregistered_noise_filter" output="screen">
-    <remap from="image_raw" to="$(arg depth_registered)/image_raw_artifactfilter" />
-    <remap from="image_raw_filtered" to="$(arg depth_registered)/image_raw_noisefilter" />
-  </node>
+    <node pkg="nodelet" type="nodelet" name="artifact_filter_nodelet" args="load astra_depth_filters/ArtifactFilterNodelet $(arg manager)" output="screen">
+      <remap from="image_raw" to="$(arg depth)/image_raw_unfiltered" />
+      <remap from="image_raw_filtered" to="$(arg depth)/image_raw_artifactfilter" />
+    </node>
 
-  <node pkg="astra_depth_filters" type="artifact_filter" name="artifact_filter" output="screen">
-    <remap from="image_raw" to="$(arg depth)/image_raw_unfiltered" />
-    <remap from="image_raw_filtered" to="$(arg depth)/image_raw_artifactfilter" />
-  </node>
-  
-  <node pkg="astra_depth_filters" type="artifact_filter" name="dregistered_artifact_filter" output="screen">
-    <remap from="image_raw" to="$(arg depth_registered)/image_raw_unfiltered" />
-    <remap from="image_raw_filtered" to="$(arg depth_registered)/image_raw_artifactfilter" />
-  </node>
+    <node pkg="nodelet" type="nodelet" name="rdepth_filter_nodelet" args="load astra_depth_filters/DepthFilterNodelet $(arg manager)" output="screen">
+      <remap from="image_raw" to="$(arg depth_registered)/image_raw_noisefilter" />
+      <remap from="image_raw_filtered" to="$(arg depth_registered)/image_raw" />
+    </node>
+    
+    <node pkg="nodelet" type="nodelet" name="rnoise_filter_nodelet" args="load astra_depth_filters/NoiseFilterNodelet $(arg manager)" output="screen">
+      <remap from="image_raw" to="$(arg depth_registered)/image_raw_artifactfilter" />
+      <remap from="image_raw_filtered" to="$(arg depth_registered)/image_raw_noisefilter" />
+    </node>
+    
+    <node pkg="nodelet" type="nodelet" name="rartifact_filter_nodelet" args="load astra_depth_filters/ArtifactFilterNodelet $(arg manager)" output="screen">
+      <remap from="image_raw" to="$(arg depth_registered)/image_raw_unfiltered" />
+      <remap from="image_raw_filtered" to="$(arg depth_registered)/image_raw_artifactfilter" />
+    </node>
 
 
 </launch>

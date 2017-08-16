@@ -1,9 +1,11 @@
-#include "noise_filter.h"
+#include "astra_depth_filters/noise_filter.h"
 
-NoiseFilter::NoiseFilter(ros::NodeHandle n) :
-  n_(n),
-  depth_it_(n_),
-  numSubscribers(0)
+NoiseFilter::NoiseFilter(ros::NodeHandle nh, ros::NodeHandle nh_priv) :
+  nh_(nh),
+  nh_priv_(nh_priv),
+  depth_it_(nh_),
+  numSubscribers(0),
+  server_(nh_priv_)
 {
   image_transport::SubscriberStatusCallback itsscConnect = boost::bind(&NoiseFilter::connectCb, this);
   image_transport::SubscriberStatusCallback itsscDisc = boost::bind(&NoiseFilter::discCb, this);
