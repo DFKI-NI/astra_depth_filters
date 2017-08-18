@@ -9,7 +9,7 @@ NoiseFilter::NoiseFilter(ros::NodeHandle nh, ros::NodeHandle nh_priv) :
 {
   image_transport::SubscriberStatusCallback itsscConnect = boost::bind(&NoiseFilter::connectCb, this);
   image_transport::SubscriberStatusCallback itsscDisc = boost::bind(&NoiseFilter::discCb, this);
-  image_pub_ = depth_it_.advertise("image_raw_filtered", 1, itsscConnect, itsscDisc);
+  image_pub_ = depth_it_.advertise("image_raw_filtered", 10, itsscConnect, itsscDisc);
 
   dynamic_reconfigure::Server<astra_depth_filters::NoiseFilterConfig>::CallbackType f;
   f = boost::bind(&NoiseFilter::reconfigure, this , _1, _2);
@@ -114,10 +114,10 @@ void NoiseFilter::filter(cv::Mat image)
     float artifactDiff = 0;
     for (int j = 0; j < image.cols - 1; j++) //sum up all the differences per row
     {
-
       if (std::isnormal(Mi[j]) && std::isnormal(Mi[j + 1]))
       {
         float diff = Mi[j] - Mi[j + 1];
+        rowdiff += fabs(diff);
         //this tries to recognize the static noisy artifacts. parts of rows have strictly decreasing values with big differences.
         //if consecutive differences are too high, the row will be removed
         if (diff > config_.artifact_diff)
@@ -129,14 +129,12 @@ void NoiseFilter::filter(cv::Mat image)
         {
           artifactDiff = 0;
         }
-
-        rowdiff += fabs(diff);
+        if (artifactDiff > config_.artifact_length)
+        {
+          image.row(row).setTo(0);
+          break;
+        }
       }
-      if (artifactDiff > config_.artifact_length)
-      {
-        image.row(row).setTo(0);
-      }
-
     }
     //and compare them to the threshold
     if (rowdiff > config_.diff_thresh)

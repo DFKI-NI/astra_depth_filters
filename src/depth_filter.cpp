@@ -11,7 +11,7 @@ DepthFilter::DepthFilter(ros::NodeHandle nh, ros::NodeHandle nh_priv) :
 
   image_transport::SubscriberStatusCallback itsscConnect = boost::bind(&DepthFilter::connectCb, this);
   image_transport::SubscriberStatusCallback itsscDisc = boost::bind(&DepthFilter::discCb, this);
-  image_pub_ = depth_it_.advertise("image_raw_filtered", 1, itsscConnect, itsscDisc);
+  image_pub_ = depth_it_.advertise("image_raw_filtered", 10, itsscConnect, itsscDisc);
   // image_debug_pub_ = depth_it_.advertise("depth_filter_debug_image", 1);
 
   dynamic_reconfigure::Server<astra_depth_filters::DepthFilterConfig>::CallbackType f;

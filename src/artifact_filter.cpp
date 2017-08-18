@@ -9,7 +9,7 @@ ArtifactFilter::ArtifactFilter(ros::NodeHandle nh, ros::NodeHandle nh_priv) :
 {
   image_transport::SubscriberStatusCallback itsscConnect = boost::bind(&ArtifactFilter::connectCb, this);
   image_transport::SubscriberStatusCallback itsscDisc = boost::bind(&ArtifactFilter::discCb, this);
-  image_pub_ = depth_it_.advertise("image_raw_filtered", 1, itsscConnect, itsscDisc);
+  image_pub_ = depth_it_.advertise("image_raw_filtered", 10, itsscConnect, itsscDisc);
 
   dynamic_reconfigure::Server<astra_depth_filters::ArtifactFilterConfig>::CallbackType f;
   f = boost::bind(&ArtifactFilter::reconfigure, this , _1, _2);
