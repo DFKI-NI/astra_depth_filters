@@ -111,12 +111,32 @@ void NoiseFilter::filter(cv::Mat image)
   {
     const float* Mi = image.ptr<float>(row); //get pointer on row for easy []-access
     float rowdiff = 0;
+    float artifactDiff = 0;
     for (int j = 0; j < image.cols - 1; j++) //sum up all the differences per row
     {
+
       if (std::isnormal(Mi[j]) && std::isnormal(Mi[j + 1]))
       {
-        rowdiff += fabs(Mi[j] - Mi[j + 1]);
+        float diff = Mi[j] - Mi[j + 1];
+        //this tries to recognize the static noisy artifacts. parts of rows have strictly decreasing values with big differences.
+        //if consecutive differences are too high, the row will be removed
+        if (diff > config_.artifact_diff)
+        {
+          artifactDiff += 1;
+        }
+
+        if (diff < 0)
+        {
+          artifactDiff = 0;
+        }
+
+        rowdiff += fabs(diff);
       }
+      if (artifactDiff > config_.artifact_length)
+      {
+        image.row(row).setTo(0);
+      }
+
     }
     //and compare them to the threshold
     if (rowdiff > config_.diff_thresh)
@@ -139,5 +159,4 @@ void NoiseFilter::filter(cv::Mat image)
   {
     image.row(row).setTo(0);
   }
-
 }

@@ -3,7 +3,7 @@
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "temp_noise_filter");
+  ros::init(argc, argv, "noise_filter");
   ros::NodeHandle nh;
   ros::NodeHandle nh_priv("~");
   NoiseFilter nf(nh, nh_priv);
