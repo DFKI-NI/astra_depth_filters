@@ -1,19 +1,27 @@
 astra_depth_filters
-================
+===================
 
-The astra_depth_filters provide three filters for reducing nosie in depth images of the Orbbec Astra camera.
+The astra_depth_filters package provides a set of filters for reducing noise in depth images of the Orbbec Astra camera.
 
 Artifact filter
 ---------------
-The simplest of the three removes the noisy ridge that occurs at depth values between 1.287 and 1.327. 
+
+The simplest of the filters removes the noisy ridge that occurs at depth values between 1.287 and 1.327. 
 
 <img src="img/orbbec_astra_artifact.png" width="320">   <img src="img/orbbec_astra_artifact_removed.png" width="320">
 
+Crop filter
+-----------
+
+This filter crops the image by filling the image borders with NaN values. Useful to remove the invalid depth values
+produced by the astra near the left and right image borders.
+
+<img src="img/crop_unfiltered.jpg" width="320"> <img src="img/crop_filtered.jpg" width="320">
 
 Noise filter
 ---------------
 
-This filter is designed to remove the noise occuring when objects are directly in front of the camera.
+This filter is designed to remove the noise occurring when objects are directly in front of the camera.
 It will mark all rows below a certain point as invalid if 3 (min_noise_rows) consecutive rows contain at least a certain (diff_thresh) level of noise. 
 
 Noise at semi-close range:
@@ -27,7 +35,7 @@ Noise at close range:
 Depth filter
 ---------------
 
-This mighty tool is designed to remove noise occuring at edges. This noise is especially intense if the driver is compiled with option DFILTER=OFF and launched with depth_registration:=true.
+This mighty tool is designed to remove noise occurring at edges. This noise is especially intense if the driver is compiled with option DFILTER=OFF and launched with depth_registration:=true.
 The filter will detect edges in the input image and dilate them. Of all resulting edge pixels the filter will determine how many similar pixels are nearby. If that number is below a certain threshold the pixel will be marked as invalid.
 
 <img src="img/orbbec_astra_noise.png" width="320">  <img src="img/orbbec_astra_filtered.png" width="320">
@@ -71,11 +79,11 @@ package for details on dynamically reconfigurable parameters.
 
 `~min_z` (`int`, default: 1287)
 
-- The lowerbound limit of the interval which will be marked as invalid (in mm).
+- The lower bound of the interval which will be marked as invalid (in mm).
 
 `~max_z` (`int`, default: 1327)
 
-- The upperbound limit of the interval which will be marked as invalid (in mm).
+- The upper bound of the interval which will be marked as invalid (in mm).
 
 ### __noise_filter__ 
 

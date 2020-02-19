@@ -21,3 +21,12 @@
   </description>
   </class>
 </library>
+
+<library path="lib/libcrop_filter_nodelet">
+  <class name="astra_depth_filters/CropFilterNodelet" type="CropFilterNodelet" base_class_type="nodelet::Nodelet">
+  <description>
+  The Crop Filter nodelet.
+  </description>
+  </class>
+</library>
+
