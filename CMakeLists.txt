@@ -88,10 +88,10 @@ find_package(catkin REQUIRED COMPONENTS roscpp image_transport std_msgs sensor_m
 #   cfg/DynReconf2.cfg
 # )
 generate_dynamic_reconfigure_options(
-  cfg/depth_filter.cfg
-  cfg/noise_filter.cfg
-  cfg/artifact_filter.cfg
-  cfg/crop_filter.cfg
+  cfg/DepthFilter.cfg
+  cfg/NoiseFilter.cfg
+  cfg/ArtifactFilter.cfg
+  cfg/CropFilter.cfg
 )
 
 
