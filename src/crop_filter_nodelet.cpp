@@ -11,4 +11,4 @@ void CropFilterNodelet::onInit()
   filter_.reset(new CropFilter(nh, nh_private));
 }
 
-PLUGINLIB_DECLARE_CLASS(astra_depth_filters, CropFilterNodelet, CropFilterNodelet, nodelet::Nodelet);
+PLUGINLIB_EXPORT_CLASS(CropFilterNodelet, nodelet::Nodelet);

@@ -12,4 +12,4 @@ void NoiseFilterNodelet::onInit()
   filter_.reset(new NoiseFilter(nh, nh_priv));
 }
 
-PLUGINLIB_DECLARE_CLASS(astra_depth_filters, NoiseFilterNodelet, NoiseFilterNodelet, nodelet::Nodelet);
+PLUGINLIB_EXPORT_CLASS(NoiseFilterNodelet, nodelet::Nodelet);

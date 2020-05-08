@@ -12,4 +12,4 @@ void ArtifactFilterNodelet::onInit()
   filter_.reset(new ArtifactFilter(nh, nh_private));
 }
 
-PLUGINLIB_DECLARE_CLASS(astra_depth_filters, ArtifactFilterNodelet, ArtifactFilterNodelet, nodelet::Nodelet);
+PLUGINLIB_EXPORT_CLASS(ArtifactFilterNodelet, nodelet::Nodelet);
